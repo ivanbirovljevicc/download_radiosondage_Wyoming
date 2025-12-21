@@ -13,7 +13,7 @@ It is specifically designed to handle the website's anti-bot protections while p
 * [cite_start]**Flexible Filtering:** Users can select specific years, months, and UTC sounding times (00, 06, 12, 18)[cite: 7, 8, 16].
 
 ## 📂 Project Structure
-* `app.py`: The core Python script containing the Streamlit UI and Selenium scraping logic.
+* `skripta.py`: The core Python script containing the Streamlit UI and Selenium scraping logic.
 * `requirements.txt`: Specifies necessary Python libraries: `streamlit`, `selenium`, and `webdriver-manager`.
 * `packages.txt`: Defines system-level dependencies (`chromium`, `chromium-driver`) required for the browser to function on Streamlit Cloud.
 
@@ -27,3 +27,6 @@ It is specifically designed to handle the website's anti-bot protections while p
 
 ## ⚠️ Stability Note
 [cite_start]The script includes optimized delays between requests to ensure respectful scraping and to prevent IP blocking from the source server[cite: 13, 14].
+
+📦 Installation & Usage Clone this repository. Install dependencies: pip install -r requirements.txt
+Run the app: streamlit run skripta.py
