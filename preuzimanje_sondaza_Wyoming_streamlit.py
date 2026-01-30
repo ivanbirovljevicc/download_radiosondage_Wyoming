@@ -25,7 +25,7 @@ with st.sidebar:
     
     # Dinamička maksimalna godina (trenutna godina u kojoj se nalazimo)
     trenutna_godina = datetime.date.today().year
-    godina = st.number_input("📅 GODINA", min_value=1900, max_value=trenutna_godina, value=2015)
+    godina = st.number_input("📅 GODINA", min_value=1900, max_value=trenutna_godina)
     
     vremena = st.multiselect("⏰ TERMINI (UTC)", ["00", "06", "12", "18"], default=["00", "12"])
     
@@ -141,3 +141,4 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
             st.error(f"Došlo je do greške: {e}")
         finally:
             driver.quit()
+
