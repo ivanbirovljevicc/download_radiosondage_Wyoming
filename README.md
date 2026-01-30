@@ -1,5 +1,5 @@
 # download_radiosondage_Wyoming
-Preuzimanje radiosondaza sa Wyuoming univerziteta, zaobilazeci antibot i antiagent zastite.
+Preuzimanje radiosondaza sa Wyuoming univerziteta, zaobilazeci antibot i antiagent zastite, sada i sa "samostalnim" prelaskom na FM35 ili BUFR format.
 # 🌤️ UWyo RadioSondage CSV Downloader (Selenium-Powered)
 
 This Streamlit application provides an automated solution for batch-downloading meteorological sounding data from the University of Wyoming (UWyo) server.
