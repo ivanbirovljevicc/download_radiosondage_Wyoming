@@ -119,7 +119,7 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
                         progress_bar.progress(count / total_tasks)
                         status_text.text(f"Status: {count}/{total_tasks} | Trenutno obrađujem: {datum_str}")
 
-                if uspesni_fajlovi:
+               if uspesni_fajlovi:
                     st.success(f"🏁 Završeno! Preuzeto {len(uspesni_fajlovi)} fajlova.")
                     
                     # Kreiranje ZIP arhive u memoriji
@@ -128,12 +128,19 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
                         for name, content in uspesni_fajlovi.items():
                             zf.writestr(name, content)
                     
+                    # Fix: Koristimo ključ (key) da Streamlit ne bi pobrkao tastere pri osvežavanju
                     st.download_button(
                         label="📥 PREUZMI SVE KAO ZIP",
                         data=zip_buffer.getvalue(),
                         file_name=f"Sondaze_{stanica_kod}_{godina}.zip",
-                        mime="application/zip"
+                        mime="application/zip",
+                        key="download-zip-btn"
                     )
+                    
+                    # VAŽNO: Isključujemo automatsko osvežavanje koje bi moglo pokrenuti dupli download
+                    st.balloons()
+                    
+                   
                 else:
                     st.error("Nijedan podatak nije pronađen.")
         
@@ -141,4 +148,5 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
             st.error(f"Došlo je do greške: {e}")
         finally:
             driver.quit()
+
 
