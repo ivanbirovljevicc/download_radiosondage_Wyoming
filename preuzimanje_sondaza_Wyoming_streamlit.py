@@ -19,11 +19,11 @@ st.set_page_config(page_title="UWyo Arhiver", page_icon="🌤️", layout="wide"
 
 # --- SIDEBAR PODEŠAVANJA ---
 with st.sidebar:
-    st.header("⚙️ Podešavanja")
+    st.header("⚙️ Konfiguracija")
     
     stanica_kod = st.text_input("📍 KOD STANICE", value="13275")
     
-    # Dinamička maksimalna godina (trenutna godina u kojoj se nalazimo)
+    # Dinamička maksimalna godina (trenutna godina)
     trenutna_godina = datetime.date.today().year
     godina = st.number_input("📅 GODINA", min_value=1900, max_value=trenutna_godina)
     
@@ -33,6 +33,7 @@ with st.sidebar:
                      "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"]
     meseci_izbor = st.multiselect("🗓️ IZABERI MESECE", meseci_opcije, default=["Januar"])
     
+    st.divider()
     st.info("💡 Skripta automatski bira BUFR (2018+) ili FM35 (pre 2018) format.")
 
 # --- GLAVNI DEO EKRANA ---
@@ -46,14 +47,15 @@ def setup_driver():
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--remote-allow-origins=*")
+    options.add_argument("window-size=1200,800")
     
-    # ChromeDriverManager automatski rešava verziju na Streamlit Cloudu
+    # ChromeDriverManager za Streamlit Cloud okruženje
     service = Service(ChromeDriverManager(chrome_type=ChromeType.CHROMIUM).install())
     driver = webdriver.Chrome(service=service, options=options)
     return driver
 
-# --- LOGIKA PREUZIMANJA ---
-if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
+# --- GLAVNA LOGIKA ---
+if st.button("🚀 POKRENI PREUZIMANJE"):
     if not meseci_izbor:
         st.error("Morate izabrati barem jedan mesec!")
     else:
@@ -61,29 +63,31 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
         meseci_map = {m: i+1 for i, m in enumerate(meseci_opcije)}
         izabrani_brojevi = [meseci_map[m] for m in meseci_izbor]
         
-        uspesni_fajlovi = {}
+        uspesni_fajlovi = {} # Rečnik za čuvanje sadržaja fajlova u memoriji
+        
+        # UI Elementi za progres
         progress_bar = st.progress(0)
         status_text = st.empty()
-        log_expander = st.expander("Log operacija", expanded=True)
+        log_expander = st.expander("Log operacija (klikni za detalje)", expanded=True)
 
         driver = setup_driver()
         
         try:
-            # Generisanje datuma
+            # Generisanje datuma za obradu
             lista_datuma = []
             curr = datetime.date(godina, 1, 1)
             kraj = datetime.date(godina, 12, 31)
             danas = datetime.date.today()
 
             while curr <= kraj:
-                # Provera meseca i da ne idemo u budućnost
                 if curr.month in izabrani_brojevi and curr <= danas:
                     lista_datuma.append(curr)
                 curr += datetime.timedelta(days=1)
 
             total_tasks = len(lista_datuma) * len(vremena)
+            
             if total_tasks == 0:
-                st.warning("Nema datuma za obradu (proverite da niste izabrali mesec u budućnosti).")
+                st.warning("Nema validnih datuma za izabrani period.")
             else:
                 count = 0
                 for datum in lista_datuma:
@@ -91,7 +95,7 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
                         count += 1
                         datum_str = datum.strftime('%Y-%m-%d')
                         
-                        # Određivanje izvora na osnovu godine
+                        # Određivanje formata na osnovu godine
                         izvor = "BUFR" if godina >= 2018 else "FM35"
                         
                         target_url = (f"https://weather.uwyo.edu/wsgi/sounding?"
@@ -105,48 +109,46 @@ if st.button("🚀 POKRENI PROCES PREUZIMANJA"):
                             )
                             driver.get(csv_link.get_attribute("href"))
                             
-                            # Skidamo RAW sadržaj
+                            # Uzimamo sirov sadržaj sa stranice
                             content = driver.find_element(By.TAG_NAME, "pre").text
                             
                             if len(content) > 100:
                                 filename = f"{stanica_kod}_{datum.strftime('%Y%m%d')}_{vreme}UTC.csv"
                                 uspesni_fajlovi[filename] = content
-                                log_expander.write(f"✅ {filename} preuzet (Izvor: {izvor})")
+                                log_expander.write(f"✅ {filename} (Izvor: {izvor})")
                         except Exception:
-                            log_expander.write(f"❌ {datum_str} {vreme}UTC - Nije pronađeno")
+                            log_expander.write(f"❌ {datum_str} {vreme}UTC - Podaci nisu dostupni")
                         
-                        # Osvežavanje progresa
+                        # Update progress bar
                         progress_bar.progress(count / total_tasks)
-                        status_text.text(f"Status: {count}/{total_tasks} | Trenutno obrađujem: {datum_str}")
+                        status_text.text(f"Progres: {count}/{total_tasks} | Obrađujem: {datum_str} {vreme}UTC")
 
-               if uspesni_fajlovi:
-                    st.success(f"🏁 Završeno! Preuzeto {len(uspesni_fajlovi)} fajlova.")
+                # --- ZAVRŠNI KORAK: ZIP I DOWNLOAD ---
+                if uspesni_fajlovi:
+                    st.success(f"🏁 Obrada završena! Uspešno preuzeto: {len(uspesni_fajlovi)} fajlova.")
                     
-                    # Kreiranje ZIP arhive u memoriji
+                    # Pravljenje ZIP-a u RAM memoriji
                     zip_buffer = BytesIO()
                     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
                         for name, content in uspesni_fajlovi.items():
                             zf.writestr(name, content)
                     
-                    # Fix: Koristimo ključ (key) da Streamlit ne bi pobrkao tastere pri osvežavanju
+                    st.divider()
+                    st.subheader("📦 Vaša arhiva je spremna")
+                    
+                    # Download taster sa unikatnim ključem (key) da spreči duple akcije
                     st.download_button(
-                        label="📥 PREUZMI SVE KAO ZIP",
+                        label="📥 PREUZMI SVE KAO ZIP ARHIVU",
                         data=zip_buffer.getvalue(),
                         file_name=f"Sondaze_{stanica_kod}_{godina}.zip",
                         mime="application/zip",
-                        key="download-zip-btn"
+                        key="final_zip_download"
                     )
-                    
-                    # VAŽNO: Isključujemo automatsko osvežavanje koje bi moglo pokrenuti dupli download
                     st.balloons()
-                    
-                   
                 else:
-                    st.error("Nijedan podatak nije pronađen.")
+                    st.error("Nije pronađen nijedan podatak za izabrane parametre.")
         
         except Exception as e:
-            st.error(f"Došlo je do greške: {e}")
+            st.error(f"Kritična greška tokom rada drajvera: {e}")
         finally:
-            driver.quit()
-
-
+            driver.quit() # Obavezno gašenje drajvera radi oslobađanja RAM-a
