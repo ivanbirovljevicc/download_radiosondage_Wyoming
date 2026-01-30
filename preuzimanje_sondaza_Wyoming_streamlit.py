@@ -57,10 +57,14 @@ def generisi_datume(godina, meseci_izbor):
 st.set_page_config(page_title="UWyo Downloader v2", page_icon="🌤️")
 st.title("🌤️ UWyo Sounding CSV Downloader")
 
+# Dinamički dobijamo trenutnu godinu
+tekuca_godina = datetime.date.today().year
+
 with st.sidebar:
     st.header("Podešavanja")
     stanica_kod = st.text_input("KOD STANICE", value="13275")
-    godina = st.number_input("GODINA", min_value=1950, max_value=2025, value=2018)
+    # max_value je sada uvek tekuća godina
+    godina = st.number_input("GODINA", min_value=1900, max_value=tekuca_godina, value=tekuca_godina)
     
     svi_meseci = ["Januar", "Februar", "Mart", "April", "Maj", "Jun", 
                   "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"]
@@ -134,3 +138,4 @@ if st.button("🚀 Pokreni preuzimanje"):
         finally:
             if driver:
                 driver.quit()
+
